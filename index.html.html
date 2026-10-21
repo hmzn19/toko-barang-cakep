@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <title>ZannStore – Karya Mahasiswa</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Jost:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            base: '#10141A',
+            surf: '#171C24',
+            line: '#2A313C',
+            ink: '#ECE9E3',
+            muted: '#9AA3AE',
+            accent: '#B9A3E8',
+            accentdk: '#9D84DA'
+          },
+          fontFamily: {
+            display: ['"Cormorant Garamond"', 'Georgia', 'serif'],
+            sans: ['Jost', 'system-ui', 'sans-serif']
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    html { scroll-behavior: smooth; }
+    :focus-visible { outline: 2px solid #B9A3E8; outline-offset: 2px; }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @keyframes slidein { from { transform: translateX(100%); } to { transform: none; } }
+    @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+    .hero-in { animation: rise .9s ease-out both; }
+    #cart-modal:not(.hidden) { animation: fade .25s ease-out; }
+    #cart-modal:not(.hidden) > aside { animation: slidein .35s cubic-bezier(.2,.7,.2,1); }
+    .card-img { transition: transform .7s ease; }
+    .card:hover .card-img { transform: scale(1.04); }
+    .field { width: 100%; background: transparent; color: #ECE9E3; border: 0; border-bottom: 1px solid #2A313C; padding: .55rem 0; font-size: .95rem; transition: border-color .2s; border-radius: 0; }
+    .field:focus { outline: none; border-bottom-color: #B9A3E8; }
+    .field::placeholder { color: #6B7480; }
+    .chip { border: 1px solid #2A313C; color: #9AA3AE; padding: .4rem 1rem; font-size: .85rem; transition: all .2s; white-space: nowrap; }
+    .chip:hover { border-color: #B9A3E8; color: #ECE9E3; }
+    .chip.on { background: #B9A3E8; border-color: #B9A3E8; color: #10141A; font-weight: 500; }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body class="bg-base text-ink font-sans antialiased min-h-screen flex flex-col">
+
+  <!-- Navbar -->
+  <header class="bg-base/90 backdrop-blur border-b border-line sticky top-0 z-20">
+    <div class="max-w-6xl mx-auto px-5 h-16 flex justify-between items-center">
+      <h1 class="font-display text-2xl font-semibold tracking-wide">ZannStore</h1>
+      <button onclick="toggleCart()" aria-label="Buka keranjang belanja" class="relative p-2 text-ink hover:text-accent transition-colors">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M6 8h12l-1 12H7L6 8zm3 0V6a3 3 0 016 0v2"/></svg>
+        <span id="cart-count" class="absolute -top-0.5 -right-1 bg-accent text-base text-[11px] font-semibold rounded-full min-w-[1.25rem] h-5 px-1 flex items-center justify-center">0</span>
+      </button>
+    </div>
+  </header>
+
+  <!-- Banner & Katalog Produk -->
+  <main class="max-w-6xl mx-auto px-5 py-8 md:py-12 flex-1 w-full">
+    <section class="hero-in bg-surf px-7 py-12 md:px-16 md:py-20 mb-12 md:mb-16 border-b-2 border-accent">
+      <h2 class="font-display font-semibold text-4xl md:text-6xl leading-[1.05] max-w-2xl">Karya mahasiswa, dipilih dengan teliti.</h2>
+      <p class="mt-5 text-muted max-w-md text-base leading-relaxed">Produk kreatif dari wirausaha muda. Pilih barangnya, masukkan ke keranjang, lalu selesaikan pesanan lewat WhatsApp.</p>
+      <a href="#katalog" class="inline-block mt-8 bg-accent text-base px-6 py-3 text-sm font-medium hover:bg-accentdk transition-colors">Lihat koleksi</a>
+    </section>
+
+    <h3 id="katalog" class="font-display text-3xl font-semibold mb-6 scroll-mt-24">Koleksi</h3>
+
+    <!-- Cari & filter kategori -->
+    <div id="catalog-controls" class="mb-8 space-y-4 hidden">
+      <div class="relative max-w-md">
+        <label for="search-input" class="sr-only">Cari produk</label>
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 absolute left-0 top-1/2 -translate-y-1/2 text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-4.3-4.3M17 10.5a6.5 6.5 0 11-13 0 6.5 6.5 0 0113 0z"/></svg>
+        <input type="search" id="search-input" oninput="onSearch(this.value)" class="field pl-8" placeholder="Cari nama atau deskripsi produk">
+      </div>
+      <div id="category-filters" class="flex gap-2 overflow-x-auto pb-1" role="group" aria-label="Filter kategori"></div>
+      <p id="result-info" class="text-xs text-muted" aria-live="polite"></p>
+    </div>
+
+    <div id="product-loading" class="text-center py-20 text-muted">
+      <div class="inline-block w-8 h-8 border-2 border-line border-t-accent rounded-full animate-spin mb-4"></div>
+      <p>Memuat katalog produk…</p>
+    </div>
+
+    <div id="product-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-7 gap-y-12 hidden"></div>
+
+    <div id="product-empty" class="hidden text-center py-16">
+      <p class="font-display text-2xl">Produk tidak ditemukan</p>
+      <p class="text-sm text-muted mt-1">Coba kata kunci lain atau pilih kategori Semua.</p>
+      <button onclick="resetFilters()" class="mt-5 border border-accent text-accent px-5 py-2 text-sm hover:bg-accent hover:text-base transition-colors">Reset pencarian</button>
+    </div>
+  </main>
+
+  <!-- Footer Website -->
+  <footer class="border-t border-line py-8 text-center text-xs text-muted">
+    <p class="font-display text-lg text-ink">ZannStore</p>
+    <p class="mt-2">© 2026 ZannStore. All rights reserved.</p>
+    <p class="mt-1">Powered by hamzanwadi</p>
+  </footer>
+
+  <!-- Modal Drawer Keranjang Belanja -->
+  <div id="cart-modal" class="fixed inset-0 bg-black/70 z-30 hidden flex justify-end">
+    <aside class="bg-surf w-full max-w-md h-full flex flex-col px-7 py-6 overflow-y-auto border-l border-line" role="dialog" aria-label="Keranjang belanja">
+      <div class="flex justify-between items-center pb-4 border-b border-line">
+        <h4 class="font-display text-2xl font-semibold">Keranjang Belanja</h4>
+        <button onclick="toggleCart()" aria-label="Tutup keranjang" class="text-muted hover:text-ink text-3xl leading-none">&times;</button>
+      </div>
+
+      <div id="cart-items" class="flex-1 overflow-y-auto"></div>
+
+      <div class="border-t border-line pt-5 space-y-5">
+        <div class="flex justify-between items-baseline">
+          <span class="text-sm text-muted">Total Pembayaran</span>
+          <span id="cart-total" class="font-display text-3xl font-semibold text-accent">Rp 0</span>
+        </div>
+
+        <form id="checkout-form" onsubmit="handleCheckout(event)" class="space-y-4">
+          <div>
+            <label for="cust-name" class="block text-xs text-muted">Nama Lengkap Pembeli</label>
+            <input type="text" id="cust-name" required class="field" placeholder="Contoh: Budi Santoso">
+          </div>
+          <div>
+            <label for="cust-phone" class="block text-xs text-muted">Nomor WhatsApp Aktif</label>
+            <input type="tel" id="cust-phone" required class="field" placeholder="Contoh: 081234567890">
+          </div>
+          <div>
+            <label for="cust-address" class="block text-xs text-muted">Alamat Lengkap Pengiriman</label>
+            <textarea id="cust-address" required class="field resize-none" rows="2" placeholder="Jalan, Nomor Rumah, Kelurahan, Kecamatan, Kota"></textarea>
+          </div>
+          <button type="submit" id="btn-submit" class="w-full bg-accent text-base font-semibold py-3.5 hover:bg-accentdk transition-colors disabled:opacity-60">
+            Pesan via WhatsApp
+          </button>
+        </form>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Logika JavaScript -->
+  <script>
+    // 1. Masukkan URL Apps Script Anda (/exec) dan Nomor WhatsApp Admin di bawah ini:
+    const API_URL = "https://script.google.com/macros/s/AKfycbyI9fUjYjmO8ykudeKjBBsQDd3h1hvv_xJIyE0H-Cv6XTm2wiM2xVjmL0Nu3SchJiWo5g/exec";
+    const WA_ADMIN = "6281236557804"; // Format: 628xxxxxxxxxx (awalan 62)
+
+    const BTN_LABEL = "Pesan via WhatsApp";
+    const FALLBACK_IMG = "data:image/svg+xml;utf8," + encodeURIComponent(
+      "<svg xmlns='http://www.w3.org/2000/svg' width='400' height='500'><rect width='100%' height='100%' fill='#1E242E'/><text x='50%' y='50%' fill='#6B7480' font-family='sans-serif' font-size='16' text-anchor='middle'>Foto produk</text></svg>"
+    );
+
+    let products = [];
+    let cart = [];
+    let cats = ["Semua"];
+    let activeCat = "Semua";
+    let query = "";
+
+    async function loadProducts() {
+      try {
+        const res = await fetch(API_URL);
+        const json = await res.json();
+        products = json.data;
+        buildFilters();
+        renderProducts();
+      } catch (err) {
+        document.getElementById("product-loading").innerHTML =
+          "<p class='text-red-400 font-medium'>Produk gagal dimuat.</p>" +
+          "<p class='text-sm text-muted mt-1'>Periksa koneksi internet, lalu muat ulang halaman.</p>" +
+          "<button onclick='location.reload()' class='mt-4 border border-accent text-accent px-5 py-2 text-sm hover:bg-accent hover:text-base transition-colors'>Muat ulang</button>";
+      }
+    }
+
+    // ----- Cari & filter kategori -----
+    function getFiltered() {
+      const q = query.trim().toLowerCase();
+      return products.filter(p => {
+        const cat = p.kategori || "Umum";
+        const okCat = activeCat === "Semua" || cat === activeCat;
+        const okQ = !q || [p.nama, p.deskripsi, cat].join(" ").toLowerCase().includes(q);
+        return okCat && okQ;
+      });
+    }
+
+    function buildFilters() {
+      cats = ["Semua", ...new Set(products.map(p => p.kategori || "Umum"))];
+      document.getElementById("category-filters").innerHTML = cats.map((c, i) =>
+        `<button onclick="setCategory(${i})" class="chip ${c === activeCat ? 'on' : ''}" aria-pressed="${c === activeCat}">${c}</button>`
+      ).join("");
+    }
+
+    function setCategory(i) {
+      activeCat = cats[i];
+      buildFilters();
+      renderProducts();
+    }
+
+    function onSearch(v) {
+      query = v;
+      renderProducts();
+    }
+
+    function resetFilters() {
+      query = "";
+      activeCat = "Semua";
+      document.getElementById("search-input").value = "";
+      buildFilters();
+      renderProducts();
+    }
+
+    function renderProducts() {
+      const grid = document.getElementById("product-grid");
+      const list = getFiltered();
+      grid.innerHTML = "";
+      list.forEach(p => {
+        grid.innerHTML += `
+          <article class="card flex flex-col">
+            <div class="aspect-[4/5] overflow-hidden bg-surf">
+              <img src="${p.foto || FALLBACK_IMG}" class="card-img h-full w-full object-cover" alt="${p.nama}" loading="lazy" onerror="this.onerror=null;this.src=FALLBACK_IMG">
+            </div>
+            <div class="pt-5 flex-1 flex flex-col justify-between">
+              <div>
+                <p class="text-xs text-accent">${p.kategori || 'Umum'}</p>
+                <h4 class="font-display text-2xl font-semibold leading-tight mt-1">${p.nama}</h4>
+                <p class="text-sm text-muted mt-2 leading-relaxed">${p.deskripsi || ''}</p>
+                <p class="text-xs text-muted mt-2">Sisa stok: <span class="text-ink font-medium">${p.stok || 0}</span></p>
+              </div>
+              <div class="mt-5 pt-4 border-t border-line flex items-center justify-between">
+                <span class="font-display text-2xl font-semibold">Rp ${Number(p.harga || 0).toLocaleString("id-ID")}</span>
+                <button onclick="addToCart(${p.id})" class="border border-accent text-accent text-sm font-medium px-4 py-2 hover:bg-accent hover:text-base transition-colors">Tambah</button>
+              </div>
+            </div>
+          </article>
+        `;
+      });
+      document.getElementById("product-loading").classList.add("hidden");
+      document.getElementById("catalog-controls").classList.remove("hidden");
+      document.getElementById("result-info").innerText = `Menampilkan ${list.length} dari ${products.length} produk`;
+      grid.classList.toggle("hidden", list.length === 0);
+      document.getElementById("product-empty").classList.toggle("hidden", list.length !== 0);
+    }
+
+    // ----- Keranjang -----
+    function addToCart(id) {
+      const prod = products.find(p => p.id == id);
+      const exist = cart.find(item => item.id == id);
+      if (exist) { exist.qty += 1; } else { cart.push({ ...prod, qty: 1 }); }
+      updateCartUI();
+    }
+
+    function changeQty(idx, delta) {
+      cart[idx].qty += delta;
+      if (cart[idx].qty <= 0) cart.splice(idx, 1);
+      updateCartUI();
+    }
+
+    function updateCartUI() {
+      document.getElementById("cart-count").innerText = cart.reduce((acc, i) => acc + i.qty, 0);
+      const container = document.getElementById("cart-items");
+      container.innerHTML = "";
+      let total = 0;
+
+      if (cart.length === 0) {
+        container.innerHTML = `
+          <div class="h-full flex flex-col items-center justify-center text-center text-muted py-12">
+            <p class="font-display text-2xl text-ink">Keranjang masih kosong</p>
+            <p class="text-sm mt-1">Pilih produk dari koleksi untuk memulai.</p>
+          </div>`;
+      }
+
+      cart.forEach((item, idx) => {
+        total += item.harga * item.qty;
+        container.innerHTML += `
+          <div class="flex gap-4 py-4 border-b border-line">
+            <img src="${item.foto || FALLBACK_IMG}" class="w-16 h-20 object-cover bg-base" alt="${item.nama}" onerror="this.onerror=null;this.src=FALLBACK_IMG">
+            <div class="flex-1 min-w-0">
+              <p class="font-display text-lg font-semibold leading-tight">${item.nama}</p>
+              <p class="text-xs text-muted mt-0.5">Rp ${Number(item.harga).toLocaleString("id-ID")}</p>
+              <div class="mt-2 inline-flex items-center border border-line text-sm">
+                <button onclick="changeQty(${idx}, -1)" aria-label="Kurangi jumlah" class="w-7 h-7 hover:bg-line transition-colors">−</button>
+                <span class="w-8 text-center">${item.qty}</span>
+                <button onclick="changeQty(${idx}, 1)" aria-label="Tambah jumlah" class="w-7 h-7 hover:bg-line transition-colors">+</button>
+              </div>
+            </div>
+            <div class="text-right flex flex-col justify-between">
+              <p class="text-sm font-medium">Rp ${(item.harga * item.qty).toLocaleString("id-ID")}</p>
+              <button onclick="cart.splice(${idx}, 1); updateCartUI()" class="text-xs text-muted hover:text-red-400 underline underline-offset-2">Hapus</button>
+            </div>
+          </div>
+        `;
+      });
+      document.getElementById("cart-total").innerText = "Rp " + total.toLocaleString("id-ID");
+    }
+
+    function toggleCart() {
+      document.getElementById("cart-modal").classList.toggle("hidden");
+    }
+
+    document.addEventListener("keydown", e => {
+      if (e.key === "Escape" && !document.getElementById("cart-modal").classList.contains("hidden")) toggleCart();
+    });
+
+    async function handleCheckout(e) {
+      e.preventDefault();
+      if (cart.length === 0) return alert("Keranjang belanja Anda masih kosong!");
+
+      const btn = document.getElementById("btn-submit");
+      btn.innerText = "Mencatat Pesanan...";
+      btn.disabled = true;
+
+      const invoiceCode = "INV-" + Date.now().toString().slice(-6);
+      const payload = {
+        nama: document.getElementById("cust-name").value,
+        whatsapp: document.getElementById("cust-phone").value,
+        alamat: document.getElementById("cust-address").value,
+        items: cart,
+        total: cart.reduce((acc, i) => acc + (i.harga * i.qty), 0)
+      };
+
+      try {
+        // Kirim pesanan ke Google Sheets melalui Apps Script
+        fetch(API_URL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "text/plain" },
+          body: JSON.stringify(payload)
+        });
+
+        // Susun format pesan rapi untuk WhatsApp
+        let textWA = `Halo Admin, saya ingin konfirmasi pesanan:\n\n`;
+        textWA += `🧾 *Invoice: ${invoiceCode}*\n`;
+        textWA += `👤 *Nama:* ${payload.nama}\n`;
+        textWA += `📱 *No. WA:* ${payload.whatsapp}\n`;
+        textWA += `📍 *Alamat:* ${payload.alamat}\n\n`;
+        textWA += `🛍️ *Daftar Belanja:* \n`;
+        payload.items.forEach(i => {
+          textWA += `• ${i.nama} (${i.qty}x) = Rp ${(i.harga * i.qty).toLocaleString("id-ID")}\n`;
+        });
+        textWA += `\n💰 *Total Pembayaran: Rp ${payload.total.toLocaleString("id-ID")}*\n\n`;
+        textWA += `Mohon info nomor rekening dan total ongkirnya. Terima kasih!`;
+
+        // Buka WhatsApp Admin di tab baru
+        window.open(`https://wa.me/${WA_ADMIN}?text=${encodeURIComponent(textWA)}`, "_blank");
+
+        // Reset keranjang belanja
+        cart = [];
+        updateCartUI();
+        toggleCart();
+        e.target.reset();
+      } catch (err) {
+        alert("Gagal memproses pesanan. Silakan coba kembali.");
+      } finally {
+        btn.innerText = BTN_LABEL;
+        btn.disabled = false;
+      }
+    }
+
+    updateCartUI();
+    loadProducts();
+  </script>
+</body>
+</html>
